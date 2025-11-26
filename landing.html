@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dictée Vocale - Téléchargement</title>
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -17,13 +20,23 @@
             transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
+        .step-number {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body class="gradient-bg min-h-screen flex items-center justify-center p-4">
 
     <div class="max-w-2xl w-full">
         <!-- Header -->
-        <div class="text-center mb-10">
+        <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-lg mb-6">
                 <i class="fa-solid fa-microphone-lines text-4xl text-blue-600"></i>
             </div>
@@ -31,11 +44,11 @@
             <p class="text-blue-100 text-lg">Transformez votre voix en texte instantanément</p>
         </div>
 
-        <!-- Carte principale avec détection -->
+        <!-- Carte principale -->
         <div class="bg-white rounded-2xl shadow-2xl p-8 card-hover">
 
             <!-- Plateforme détectée -->
-            <div class="text-center mb-8">
+            <div class="text-center mb-6">
                 <p class="text-sm text-slate-500 mb-2">Plateforme détectée</p>
                 <div id="platform-badge" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
                     <i id="platform-icon" class="fa-solid fa-computer text-slate-600"></i>
@@ -44,24 +57,112 @@
             </div>
 
             <!-- Bouton principal -->
-            <div id="main-action" class="text-center mb-6">
-                <!-- Rempli dynamiquement par JS -->
-            </div>
-
-            <!-- Séparateur -->
-            <div class="flex items-center gap-4 my-6">
-                <div class="flex-1 h-px bg-slate-200"></div>
-                <span class="text-sm text-slate-400">ou</span>
-                <div class="flex-1 h-px bg-slate-200"></div>
-            </div>
-
-            <!-- Option alternative -->
-            <div class="text-center">
-                <a href="index.html" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                    <i class="fa-solid fa-globe"></i>
-                    <span>Utiliser directement dans le navigateur</span>
-                    <i class="fa-solid fa-arrow-right text-sm"></i>
+            <div class="text-center mb-6">
+                <a href="index.html" id="main-btn"
+                   class="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl font-semibold text-lg">
+                    <i class="fa-solid fa-rocket"></i>
+                    <span>Lancer l'application</span>
                 </a>
+            </div>
+
+            <!-- Instructions d'installation PWA -->
+            <div id="install-instructions" class="mt-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-download text-blue-600"></i>
+                    Installer comme une application
+                </h3>
+
+                <!-- Instructions Desktop (Chrome/Edge) -->
+                <div id="instructions-desktop" class="hidden">
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">1</span>
+                            <p class="text-slate-600">Cliquez sur <strong>"Lancer l'application"</strong> ci-dessus</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">2</span>
+                            <p class="text-slate-600">Dans la barre d'adresse, cliquez sur l'icône <i class="fa-solid fa-download text-blue-600"></i> ou <i class="fa-solid fa-plus-square text-blue-600"></i></p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">3</span>
+                            <p class="text-slate-600">Cliquez sur <strong>"Installer"</strong> - une icône apparaîtra sur votre bureau</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-white rounded-lg flex items-center gap-3">
+                        <i class="fa-solid fa-lightbulb text-yellow-500"></i>
+                        <p class="text-xs text-slate-500">L'app s'ouvrira dans sa propre fenêtre, comme un vrai logiciel !</p>
+                    </div>
+                </div>
+
+                <!-- Instructions iOS -->
+                <div id="instructions-ios" class="hidden">
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">1</span>
+                            <p class="text-slate-600">Cliquez sur <strong>"Lancer l'application"</strong> ci-dessus</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">2</span>
+                            <p class="text-slate-600">Appuyez sur le bouton <strong>Partager</strong> <i class="fa-solid fa-arrow-up-from-bracket text-blue-600"></i> en bas de Safari</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">3</span>
+                            <p class="text-slate-600">Faites défiler et appuyez sur <strong>"Sur l'écran d'accueil"</strong> <i class="fa-solid fa-plus-square text-blue-600"></i></p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">4</span>
+                            <p class="text-slate-600">Appuyez sur <strong>"Ajouter"</strong> en haut à droite</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-white rounded-lg flex items-center gap-3">
+                        <i class="fa-brands fa-safari text-blue-500"></i>
+                        <p class="text-xs text-slate-500">Utilisez Safari pour cette manipulation (ne fonctionne pas avec Chrome sur iOS)</p>
+                    </div>
+                </div>
+
+                <!-- Instructions Android -->
+                <div id="instructions-android" class="hidden">
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">1</span>
+                            <p class="text-slate-600">Cliquez sur <strong>"Lancer l'application"</strong> ci-dessus</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">2</span>
+                            <p class="text-slate-600">Appuyez sur le menu <i class="fa-solid fa-ellipsis-vertical text-blue-600"></i> (3 points en haut à droite)</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">3</span>
+                            <p class="text-slate-600">Appuyez sur <strong>"Installer l'application"</strong> ou <strong>"Ajouter à l'écran d'accueil"</strong></p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-white rounded-lg flex items-center gap-3">
+                        <i class="fa-brands fa-chrome text-green-500"></i>
+                        <p class="text-xs text-slate-500">Fonctionne avec Chrome, Edge ou Samsung Internet</p>
+                    </div>
+                </div>
+
+                <!-- Instructions Mac Safari -->
+                <div id="instructions-mac" class="hidden">
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">1</span>
+                            <p class="text-slate-600">Cliquez sur <strong>"Lancer l'application"</strong> ci-dessus</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">2</span>
+                            <p class="text-slate-600"><strong>Safari :</strong> Menu Fichier → "Ajouter au Dock"</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="step-number bg-blue-600 text-white shrink-0">2</span>
+                            <p class="text-slate-600"><strong>Chrome :</strong> Menu ⋮ → "Installer Dictée Vocale..."</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 bg-white rounded-lg flex items-center gap-3">
+                        <i class="fa-brands fa-apple text-slate-700"></i>
+                        <p class="text-xs text-slate-500">Chrome offre une meilleure expérience PWA sur Mac</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -95,63 +196,31 @@
 
             // iOS
             if (/iphone|ipad|ipod/.test(userAgent)) {
-                return {
-                    name: 'iOS',
-                    icon: 'fa-brands fa-apple',
-                    type: 'mobile',
-                    action: 'pwa'
-                };
+                return { name: 'iOS (iPhone/iPad)', icon: 'fa-brands fa-apple', instructions: 'ios' };
             }
 
             // Android
             if (/android/.test(userAgent)) {
-                return {
-                    name: 'Android',
-                    icon: 'fa-brands fa-android',
-                    type: 'mobile',
-                    action: 'pwa'
-                };
+                return { name: 'Android', icon: 'fa-brands fa-android', instructions: 'android' };
             }
 
             // Mac
             if (/mac/.test(platform) || /macintosh/.test(userAgent)) {
-                return {
-                    name: 'macOS',
-                    icon: 'fa-brands fa-apple',
-                    type: 'desktop',
-                    action: 'download',
-                    file: 'DicteeVocale-mac.zip'
-                };
+                return { name: 'macOS', icon: 'fa-brands fa-apple', instructions: 'mac' };
             }
 
             // Windows
             if (/win/.test(platform) || /windows/.test(userAgent)) {
-                return {
-                    name: 'Windows',
-                    icon: 'fa-brands fa-windows',
-                    type: 'desktop',
-                    action: 'download',
-                    file: 'DicteeVocale-win.exe'
-                };
+                return { name: 'Windows', icon: 'fa-brands fa-windows', instructions: 'desktop' };
             }
 
             // Linux
             if (/linux/.test(platform)) {
-                return {
-                    name: 'Linux',
-                    icon: 'fa-brands fa-linux',
-                    type: 'desktop',
-                    action: 'pwa'
-                };
+                return { name: 'Linux', icon: 'fa-brands fa-linux', instructions: 'desktop' };
             }
 
             // Par défaut
-            return {
-                name: 'Navigateur',
-                icon: 'fa-solid fa-globe',
-                type: 'web',
-                action: 'pwa'
-            };
+            return { name: 'Navigateur', icon: 'fa-solid fa-globe', instructions: 'desktop' };
         }
 
         // Mise à jour de l'interface
@@ -160,34 +229,8 @@
             document.getElementById('platform-icon').className = platform.icon + ' text-slate-600';
             document.getElementById('platform-name').textContent = platform.name;
 
-            // Bouton principal
-            const mainAction = document.getElementById('main-action');
-
-            if (platform.action === 'download' && platform.file) {
-                mainAction.innerHTML = `
-                    <a href="downloads/${platform.file}"
-                       class="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl font-semibold text-lg">
-                        <i class="fa-solid fa-download"></i>
-                        <span>Télécharger pour ${platform.name}</span>
-                    </a>
-                    <p class="text-slate-500 text-sm mt-3">
-                        <i class="fa-solid fa-file-zipper mr-1"></i>
-                        Application portable - Aucune installation requise
-                    </p>
-                `;
-            } else {
-                mainAction.innerHTML = `
-                    <a href="index.html"
-                       class="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl font-semibold text-lg">
-                        <i class="fa-solid fa-rocket"></i>
-                        <span>Lancer l'application</span>
-                    </a>
-                    <p class="text-slate-500 text-sm mt-3">
-                        <i class="fa-solid fa-plus-circle mr-1"></i>
-                        Astuce : Ajoutez à l'écran d'accueil pour un accès rapide
-                    </p>
-                `;
-            }
+            // Afficher les bonnes instructions
+            document.getElementById('instructions-' + platform.instructions).classList.remove('hidden');
         }
 
         // Initialisation
