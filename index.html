@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictée Vocale & Copie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Animation pour l'onde sonore quand ça écoute */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .listening-animation {
+            animation: pulse-ring 2s infinite;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center font-sans text-slate-800">
+
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden m-4 flex flex-col h-[85vh] md:h-auto border border-slate-100">
+
+        <!-- Header -->
+        <div class="bg-white p-6 border-b border-slate-100 flex justify-between items-center z-10 relative">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-microphone-lines text-blue-600"></i>
+                    Dictée Vocale
+                </h1>
+                <p class="text-sm text-slate-500 mt-1" id="status-text">Prêt à écouter...</p>
+            </div>
+
+            <div id="recording-indicator" class="hidden">
+                <span class="flex h-3 w-3 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                <span class="ml-2 text-red-500 text-xs font-bold uppercase tracking-wider">En direct</span>
+            </div>
+        </div>
+
+        <!-- Zone de texte principale -->
+        <div class="flex-grow relative bg-slate-50">
+            <textarea
+                id="final-transcript"
+                class="w-full h-full p-6 text-lg text-slate-700 bg-transparent resize-none focus:outline-none leading-relaxed"
+                placeholder="Appuyez sur le micro et commencez à parler..."
+            ></textarea>
+
+            <!-- Overlay si API non supportée -->
+            <div id="error-overlay" class="hidden absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center text-center p-6">
+                <i class="fa-solid fa-circle-exclamation text-4xl text-red-500 mb-4"></i>
+                <h3 class="text-xl font-bold text-slate-800">Navigateur non compatible</h3>
+                <p class="text-slate-600 mt-2">Désolé, votre navigateur ne supporte pas la reconnaissance vocale. Veuillez utiliser Chrome, Edge ou Safari.</p>
+            </div>
+        </div>
+
+        <!-- Barre d'outils / Contrôles -->
+        <div class="p-4 bg-white border-t border-slate-100">
+
+            <!-- Actions rapides -->
+            <div class="flex items-center justify-between gap-4">
+
+                <!-- Groupe Gauche -->
+                <div class="flex gap-2">
+                    <button id="clear-btn" class="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all tooltip" title="Effacer tout">
+                        <i class="fa-solid fa-trash-can text-lg"></i>
+                    </button>
+                    <!-- Sélecteur de langue simplifié (visuel) -->
+                    <div class="hidden md:flex items-center px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-600 font-medium cursor-default">
+                        Français (FR)
+                    </div>
+                </div>
+
+                <!-- Bouton Micro Central -->
+                <button id="mic-btn" class="relative group h-16 w-16 flex items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-blue-200/50 transition-all transform hover:scale-105 active:scale-95">
+                    <i id="mic-icon" class="fa-solid fa-microphone text-2xl"></i>
+                    <span class="absolute -bottom-8 text-xs text-slate-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Démarrer / Arrêter</span>
+                </button>
+
+                <!-- Bouton Copier -->
+                <button id="copy-btn" class="flex items-center gap-2 px-5 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all active:scale-95 font-medium shadow-md shadow-slate-200">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copier</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none flex items-center gap-2 z-50">
+            <i class="fa-solid fa-check text-green-400"></i>
+            <span id="toast-message">Texte copié !</span>
+        </div>
+
+    </div>
+
+    <script>
+        // Éléments du DOM
+        const micBtn = document.getElementById('mic-btn');
+        const micIcon = document.getElementById('mic-icon');
+        const textArea = document.getElementById('final-transcript');
+        const copyBtn = document.getElementById('copy-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const statusText = document.getElementById('status-text');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const errorOverlay = document.getElementById('error-overlay');
+        const toast = document.getElementById('toast');
+
+        // Variables d'état
+        let isListening = false;
+        let recognition = null;
+        let shouldRestart = false; // Pour iOS/Safari - relance automatique
+
+        // Détection de l'environnement
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        const isSecureContext = window.isSecureContext;
+        const isFileProtocol = window.location.protocol === 'file:';
+
+        // Fonction de diagnostic
+        function runDiagnostic() {
+            const issues = [];
+
+            // Vérifier le protocole file://
+            if (isFileProtocol) {
+                issues.push({
+                    type: 'critical',
+                    message: "Fichier ouvert en local (file://). La reconnaissance vocale nécessite un serveur.",
+                    solution: "Lancez un serveur local : python -m http.server 8000, puis ouvrez http://localhost:8000"
+                });
+            }
+
+            // Vérifier le contexte sécurisé
+            if (!isSecureContext && !isFileProtocol) {
+                issues.push({
+                    type: 'critical',
+                    message: "Contexte non sécurisé. HTTPS requis.",
+                    solution: "Utilisez HTTPS ou localhost"
+                });
+            }
+
+            // Vérifier la compatibilité navigateur
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                issues.push({
+                    type: 'critical',
+                    message: "Navigateur non compatible (Firefox ?)",
+                    solution: "Utilisez Chrome, Edge ou Safari"
+                });
+            }
+
+            // Avertissement iOS/Safari
+            if (isIOS || isSafari) {
+                issues.push({
+                    type: 'warning',
+                    message: "iOS/Safari détecté - mode adapté activé",
+                    solution: "La reconnaissance peut s'interrompre après un silence. Relance automatique activée."
+                });
+            }
+
+            return issues;
+        }
+
+        // Afficher les problèmes détectés
+        function showDiagnostic(issues) {
+            const criticalIssues = issues.filter(i => i.type === 'critical');
+            const warnings = issues.filter(i => i.type === 'warning');
+
+            if (criticalIssues.length > 0) {
+                const errorDiv = document.getElementById('error-overlay');
+                const issue = criticalIssues[0];
+                errorDiv.innerHTML = `
+                    <i class="fa-solid fa-circle-exclamation text-4xl text-red-500 mb-4"></i>
+                    <h3 class="text-xl font-bold text-slate-800">Problème détecté</h3>
+                    <p class="text-slate-600 mt-2">${issue.message}</p>
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg text-left max-w-md">
+                        <p class="text-sm font-semibold text-blue-800">Solution :</p>
+                        <p class="text-sm text-blue-700 mt-1">${issue.solution}</p>
+                    </div>
+                `;
+                errorDiv.classList.remove('hidden');
+                micBtn.disabled = true;
+                return false;
+            }
+
+            if (warnings.length > 0) {
+                console.log("Avertissement:", warnings[0].message);
+                statusText.textContent = warnings[0].message;
+            }
+
+            return true;
+        }
+
+        // Lancer le diagnostic
+        const diagnosticIssues = runDiagnostic();
+        const canProceed = showDiagnostic(diagnosticIssues);
+
+        // Vérification de la compatibilité du navigateur
+        if (canProceed && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+
+            // Configuration adaptée selon la plateforme
+            recognition.continuous = !isIOS; // iOS ne supporte pas bien continuous
+            recognition.interimResults = true; // Affiche les résultats en temps réel
+            recognition.lang = 'fr-FR'; // Langue française
+
+            // Sur iOS/Safari, on limite le temps max pour éviter les bugs
+            if (isIOS || isSafari) {
+                recognition.maxAlternatives = 1;
+            }
+
+            // Gestion des résultats
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        // Ajout du texte finalisé au contenu existant
+                        textArea.value += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                // Scroll automatique vers le bas
+                textArea.scrollTop = textArea.scrollHeight;
+            };
+
+            recognition.onstart = () => {
+                isListening = true;
+                updateUIState(true);
+            };
+
+            recognition.onend = () => {
+                // Sur iOS/Safari : relance automatique si l'utilisateur n'a pas arrêté manuellement
+                if (shouldRestart && (isIOS || isSafari)) {
+                    console.log("Relance automatique (iOS/Safari)...");
+                    setTimeout(() => {
+                        if (shouldRestart) {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.log("Impossible de relancer:", e);
+                                isListening = false;
+                                shouldRestart = false;
+                                updateUIState(false);
+                            }
+                        }
+                    }, 100);
+                    return;
+                }
+
+                isListening = false;
+                updateUIState(false);
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Erreur de reconnaissance : ", event.error);
+
+                // Sur iOS, "no-speech" n'est pas une vraie erreur, on relance
+                if ((isIOS || isSafari) && event.error === 'no-speech' && shouldRestart) {
+                    console.log("Pas de parole détectée, relance...");
+                    return; // onend va gérer la relance
+                }
+
+                // Erreur "aborted" sur iOS quand on arrête manuellement - pas grave
+                if (event.error === 'aborted') {
+                    return;
+                }
+
+                isListening = false;
+                shouldRestart = false;
+                updateUIState(false);
+
+                if (event.error === 'not-allowed') {
+                    statusText.textContent = "Erreur : Accès au micro refusé. Vérifiez les permissions.";
+                    statusText.classList.add('text-red-500');
+                } else if (event.error === 'network') {
+                    statusText.textContent = "Erreur réseau. Vérifiez votre connexion internet.";
+                    statusText.classList.add('text-red-500');
+                } else {
+                    statusText.textContent = "Erreur : " + event.error;
+                }
+            };
+
+        } else if (canProceed) {
+            // Afficher l'erreur si non compatible
+            errorOverlay.classList.remove('hidden');
+            micBtn.disabled = true;
+        }
+
+        // Fonctions d'interface
+        function updateUIState(listening) {
+            if (listening) {
+                micBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                micBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'listening-animation');
+                micIcon.classList.remove('fa-microphone');
+                micIcon.classList.add('fa-stop');
+                statusText.textContent = "En écoute... Parlez maintenant.";
+                statusText.classList.remove('text-slate-500', 'text-red-500');
+                statusText.classList.add('text-blue-600', 'font-medium');
+                recordingIndicator.classList.remove('hidden');
+            } else {
+                micBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                micBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'listening-animation');
+                micIcon.classList.add('fa-microphone');
+                micIcon.classList.remove('fa-stop');
+                statusText.textContent = "Prêt. Appuyez sur le micro pour commencer.";
+                statusText.classList.remove('text-blue-600', 'font-medium', 'text-red-500');
+                statusText.classList.add('text-slate-500');
+                recordingIndicator.classList.add('hidden');
+            }
+        }
+
+        function showToast(message) {
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.textContent = message;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100', '-translate-y-2');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', '-translate-y-2');
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
+
+        // Événements
+        micBtn.addEventListener('click', () => {
+            if (!recognition) return;
+
+            if (isListening) {
+                // Arrêt manuel - on désactive la relance automatique
+                shouldRestart = false;
+                recognition.stop();
+            } else {
+                // Démarrage - on active la relance automatique pour iOS/Safari
+                shouldRestart = (isIOS || isSafari);
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.error("Erreur au démarrage:", e);
+                    statusText.textContent = "Erreur au démarrage. Réessayez.";
+                }
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (!textArea.value) {
+                showToast("Rien à copier !");
+                return;
+            }
+
+            // Méthode robuste pour copier
+            textArea.select();
+            textArea.setSelectionRange(0, 99999); // Pour mobile
+
+            try {
+                // Utilisation moderne de l'API Clipboard
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(textArea.value).then(() => {
+                        showToast("Texte copié dans le presse-papier !");
+                    });
+                } else {
+                    // Fallback pour iframe/anciens navigateurs
+                    document.execCommand('copy');
+                    showToast("Texte copié !");
+                }
+            } catch (err) {
+                console.error('Erreur copie', err);
+                showToast("Erreur lors de la copie.");
+            }
+
+            // Désélectionner après copie pour l'esthétique
+            if (window.getSelection) {window.getSelection().removeAllRanges();}
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (confirm("Voulez-vous vraiment tout effacer ?")) {
+                textArea.value = '';
+                textArea.focus();
+            }
+        });
+
+    </script>
+</body>
+</html>
