@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictée Vocale - Téléchargement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-2xl w-full">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-lg mb-6">
+                <i class="fa-solid fa-microphone-lines text-4xl text-blue-600"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-3">Dictée Vocale</h1>
+            <p class="text-blue-100 text-lg">Transformez votre voix en texte instantanément</p>
+        </div>
+
+        <!-- Carte principale avec détection -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 card-hover">
+
+            <!-- Plateforme détectée -->
+            <div class="text-center mb-8">
+                <p class="text-sm text-slate-500 mb-2">Plateforme détectée</p>
+                <div id="platform-badge" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
+                    <i id="platform-icon" class="fa-solid fa-computer text-slate-600"></i>
+                    <span id="platform-name" class="font-medium text-slate-700">Détection...</span>
+                </div>
+            </div>
+
+            <!-- Bouton principal -->
+            <div id="main-action" class="text-center mb-6">
+                <!-- Rempli dynamiquement par JS -->
+            </div>
+
+            <!-- Séparateur -->
+            <div class="flex items-center gap-4 my-6">
+                <div class="flex-1 h-px bg-slate-200"></div>
+                <span class="text-sm text-slate-400">ou</span>
+                <div class="flex-1 h-px bg-slate-200"></div>
+            </div>
+
+            <!-- Option alternative -->
+            <div class="text-center">
+                <a href="index.html" class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                    <i class="fa-solid fa-globe"></i>
+                    <span>Utiliser directement dans le navigateur</span>
+                    <i class="fa-solid fa-arrow-right text-sm"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="grid grid-cols-3 gap-4 mt-8">
+            <div class="text-center text-white/80">
+                <i class="fa-solid fa-bolt text-2xl mb-2"></i>
+                <p class="text-sm">Rapide</p>
+            </div>
+            <div class="text-center text-white/80">
+                <i class="fa-solid fa-lock text-2xl mb-2"></i>
+                <p class="text-sm">Sécurisé</p>
+            </div>
+            <div class="text-center text-white/80">
+                <i class="fa-solid fa-mobile-screen text-2xl mb-2"></i>
+                <p class="text-sm">Multi-plateforme</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-blue-200 text-sm mt-8">
+            Fonctionne sur Chrome, Edge et Safari
+        </p>
+    </div>
+
+    <script>
+        // Détection de la plateforme
+        function detectPlatform() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const platform = navigator.platform.toLowerCase();
+
+            // iOS
+            if (/iphone|ipad|ipod/.test(userAgent)) {
+                return {
+                    name: 'iOS',
+                    icon: 'fa-brands fa-apple',
+                    type: 'mobile',
+                    action: 'pwa'
+                };
+            }
+
+            // Android
+            if (/android/.test(userAgent)) {
+                return {
+                    name: 'Android',
+                    icon: 'fa-brands fa-android',
+                    type: 'mobile',
+                    action: 'pwa'
+                };
+            }
+
+            // Mac
+            if (/mac/.test(platform) || /macintosh/.test(userAgent)) {
+                return {
+                    name: 'macOS',
+                    icon: 'fa-brands fa-apple',
+                    type: 'desktop',
+                    action: 'download',
+                    file: 'DicteeVocale-mac.zip'
+                };
+            }
+
+            // Windows
+            if (/win/.test(platform) || /windows/.test(userAgent)) {
+                return {
+                    name: 'Windows',
+                    icon: 'fa-brands fa-windows',
+                    type: 'desktop',
+                    action: 'download',
+                    file: 'DicteeVocale-win.exe'
+                };
+            }
+
+            // Linux
+            if (/linux/.test(platform)) {
+                return {
+                    name: 'Linux',
+                    icon: 'fa-brands fa-linux',
+                    type: 'desktop',
+                    action: 'pwa'
+                };
+            }
+
+            // Par défaut
+            return {
+                name: 'Navigateur',
+                icon: 'fa-solid fa-globe',
+                type: 'web',
+                action: 'pwa'
+            };
+        }
+
+        // Mise à jour de l'interface
+        function updateUI(platform) {
+            // Badge plateforme
+            document.getElementById('platform-icon').className = platform.icon + ' text-slate-600';
+            document.getElementById('platform-name').textContent = platform.name;
+
+            // Bouton principal
+            const mainAction = document.getElementById('main-action');
+
+            if (platform.action === 'download' && platform.file) {
+                mainAction.innerHTML = `
+                    <a href="downloads/${platform.file}"
+                       class="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl font-semibold text-lg">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Télécharger pour ${platform.name}</span>
+                    </a>
+                    <p class="text-slate-500 text-sm mt-3">
+                        <i class="fa-solid fa-file-zipper mr-1"></i>
+                        Application portable - Aucune installation requise
+                    </p>
+                `;
+            } else {
+                mainAction.innerHTML = `
+                    <a href="index.html"
+                       class="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl font-semibold text-lg">
+                        <i class="fa-solid fa-rocket"></i>
+                        <span>Lancer l'application</span>
+                    </a>
+                    <p class="text-slate-500 text-sm mt-3">
+                        <i class="fa-solid fa-plus-circle mr-1"></i>
+                        Astuce : Ajoutez à l'écran d'accueil pour un accès rapide
+                    </p>
+                `;
+            }
+        }
+
+        // Initialisation
+        const platform = detectPlatform();
+        updateUI(platform);
+    </script>
+
+</body>
+</html>
